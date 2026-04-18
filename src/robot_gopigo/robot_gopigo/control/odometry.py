@@ -97,21 +97,22 @@ class OdometryNode(Node):
         t.transform.rotation.w = math.cos(self.theta / 2)
         self.tf_broadcaster.sendTransform(t)
 
-	self.check_arena_bounds()
-    def check_arena_bounds(self):
-    	limit = 2.5 / 2.0  # 1.25 m
+        self.check_arena_bounds()
 
-    	# Vérifie si le robot sort du carré
-    	if abs(self.x) > limit or abs(self.y) > limit:
-        	if not hasattr(self, "out_of_bounds") or not self.out_of_bounds:
-           		self.get_logger().warn(f"Hors de l'arène ! x={self.x:.2f}, y={self.y:.2f}")
-            		self.out_of_bounds = True
-        	return True
-    	else:
-        	if hasattr(self, "out_of_bounds") and self.out_of_bounds:
-            	self.get_logger().info("✅ Retour dans l'arène")
-        	self.out_of_bounds = False
-        	return False
+    def check_arena_bounds(self):
+        limit = 2.5 / 2.0  # 1.25 m
+
+        # Vérifie si le robot sort du carré
+        if abs(self.x) > limit or abs(self.y) > limit:
+            if not hasattr(self, "out_of_bounds") or not self.out_of_bounds:
+                self.get_logger().warn(f"Hors de l'arène ! x={self.x:.2f}, y={self.y:.2f}")
+                self.out_of_bounds = True
+            return True
+        else:
+            if hasattr(self, "out_of_bounds") and self.out_of_bounds:
+                self.get_logger().info("✅ Retour dans l'arène")
+                self.out_of_bounds = False
+            return False
 
 
 def main(args=None):

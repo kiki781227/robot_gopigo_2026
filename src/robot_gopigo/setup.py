@@ -34,6 +34,7 @@ setup(
             'cube_detector_node = robot_gopigo.vision.cube_detector_node:main',
             'cmd_vel_node = robot_gopigo.control.cmd_vel_node:main',
             'mission_node = robot_gopigo.logic.mission_node:main',
+            'aruco_detector_node = robot_gopigo.vision.aruco_detector_node:main',
             'odometry = robot_gopigo.control.odometry:main'
         ],
     },
