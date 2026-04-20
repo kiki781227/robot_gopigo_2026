@@ -26,7 +26,7 @@ class ArucoDetectorNode(Node):
         self.aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
         self.detector_params = cv2.aruco.DetectorParameters_create()  
  
-        self.get_logger().info('Aruco detector pret - topic /aruco_detect')
+        # self.get_logger().info('Aruco detector pret - topic /aruco_detect')
  
     def image_callback(self, msg):
         try:
@@ -67,9 +67,9 @@ class ArucoDetectorNode(Node):
             aruco_msg.cy = cy
             aruco_msg.size = size
  
-            self.get_logger().info(
-                f'Aruco id={marker_id} | cx={cx} cy={cy} | size={size:.1f}'
-            )
+            # self.get_logger().info(
+            #     f'Aruco id={marker_id} | cx={cx} cy={cy} | size={size:.1f}'
+            # )
  
         else:
             aruco_msg.visible = False

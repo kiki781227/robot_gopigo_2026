@@ -49,11 +49,11 @@ class CubeDetectorNode(Node):
         )
  
         self.pub_cube = self.create_publisher(CubeDetect, '/cube_detect', 10)
-        self.get_logger().info(
+        # self.get_logger().info(
 
-            'Cube detector pret - couleurs: ' + str(list(COLOR_RANGES.keys()))
+        #     'Cube detector pret - couleurs: ' + str(list(COLOR_RANGES.keys()))
 
-        )
+        # )
  
     def image_callback(self, msg):
 
@@ -113,9 +113,9 @@ class CubeDetectorNode(Node):
                 cube_msg.cx = cx
                 cube_msg.cy = cy
                 cube_msg.area = best_area
-                self.get_logger().info(
-                    f'Cube {best_color} | cx={cx} cy={cy} | aire={best_area:.0f}'
-                )
+                # self.get_logger().info(
+                #     f'Cube {best_color} | cx={cx} cy={cy} | aire={best_area:.0f}'
+                # )
 
             else:
                 cube_msg.visible = False
