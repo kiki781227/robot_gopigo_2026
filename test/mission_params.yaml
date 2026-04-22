@@ -1,0 +1,34 @@
+# config/mission_params.yaml
+# Paramètres du mission_node chargés via le launch file.
+# Modifier ces valeurs pour calibrer le robot sans recompiler.
+
+mission_node:
+  ros__parameters:
+
+    # ── Vitesses ───────────────────────────────────────────────────────────
+    vitesse_rotation: 0.25   # rad/s  Rotation pendant détection/recherche ArUco
+                              #        ↓ si vous ratez les cubes/ArUcos
+    vitesse_approche: 0.10   # m/s   Avance vers cube ou dépôt
+                              #        ↓ si le centrage est difficile
+    vitesse_retour:   0.15   # m/s   Retour au point de départ
+
+    # ── Vision ─────────────────────────────────────────────────────────────
+    gain_direction:     0.0015   # rad/px  Correction angulaire par pixel d'erreur
+    gain_direction_max: 0.30     # rad/s   Saturation de la correction (clamp)
+    seuil_centrage:     25.0     # px      Erreur max acceptable en centrage
+
+    # ── Distances ──────────────────────────────────────────────────────────
+    dist_aveugle:    0.25   # m   Distance à parcourir sans vision (prise du cube)
+    dist_arret_mur:  0.18   # m   Sécurité ultrason : arrêt avant le mur/dépôt
+
+    # ── Mission ────────────────────────────────────────────────────────────
+    max_cycles: 3           # Nombre de cubes à collecter
+
+    # ── Mapping couleur → ID ArUco dépôt ───────────────────────────────────
+    # Modifier selon la disposition réelle dans l'arène.
+    # Dépôt OUEST = ArUco 0 | Dépôt EST = ArUco 1
+    couleur_vers_aruco:
+      rouge:  0
+      bleu:   1
+      vert:   1
+      jaune:  0
