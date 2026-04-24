@@ -6,7 +6,7 @@ mission_node:
   ros__parameters:
 
     # ── Vitesses ───────────────────────────────────────────────────────────
-    vitesse_rotation: 0.25   # rad/s  Rotation pendant détection/recherche ArUco
+    vitesse_rotation: 0.001   # rad/s  Rotation pendant détection/recherche ArUco
                               #        ↓ si vous ratez les cubes/ArUcos
     vitesse_approche: 0.10   # m/s   Avance vers cube ou dépôt
                               #        ↓ si le centrage est difficile

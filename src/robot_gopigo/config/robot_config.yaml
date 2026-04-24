@@ -1,0 +1,38 @@
+gopigo_driver_node:
+  ros__parameters:
+    wheel_base:       0.1116
+    wheel_radius:     0.03325
+    ticks_per_meter:  1655
+    max_dps:          500
+    min_dps:          0
+    cmd_timeout:      0.5
+    odom_rate:        20.0
+    invert_motors:    true
+    swap_motors:      true
+    servo_port:       1
+    
+  
+camera_node:
+  ros__parameters:
+    width:           640
+    height:          480
+    fps:             30
+    device_index:    0
+    wb_temperature:  4500   # 3000=chaud/jaune, 4500=neutre, 6500=froid/bleu
+    auto_wb:         false
+    auto_exposure:   true
+    exposure_value:  156    # utilisé si auto_exposure=false
+    
+    
+debug_server:
+  ros__parameters:
+    port:         8080
+    host:         "0.0.0.0"
+    jpeg_quality: 70
+    
+    
+aruco_detector_node:
+  ros__parameters:
+    marker_size_m:   0.054     # 5.4 cm (carré noir)
+    focal_length_px: 730.0     # à calibrer empiriquement (étape ci-dessous)
+    dictionary: "DICT_4X4_50"

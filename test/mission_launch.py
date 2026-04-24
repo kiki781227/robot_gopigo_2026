@@ -13,7 +13,7 @@ from ament_index_python.packages import get_package_share_directory
 
 def generate_launch_description():
     pkg = get_package_share_directory('robot_gopigo')
-    config = os.path.join(pkg, 'config', 'mission_params.yaml')
+    config = os.path.join(pkg, 'config', 'mission_node_config.yaml')
 
     return LaunchDescription([
 
@@ -46,7 +46,7 @@ def generate_launch_description():
         ),
         Node(
             package='robot_gopigo',
-            executable='odometry_node',
+            executable='odometry',
             name='odometry_node',
             output='screen',
         ),

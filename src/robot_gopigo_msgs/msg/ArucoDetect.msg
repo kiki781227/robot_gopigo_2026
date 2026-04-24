@@ -3,5 +3,7 @@ int32 marker_id
 int32 cx
 int32 cy
 float32 size
+float32 distance_m
+float32 bearing_rad
 int32 img_width
 int32 img_height

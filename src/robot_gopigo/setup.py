@@ -30,12 +30,12 @@ setup(
     # Même si mon script "odometry.py et autre) est physiquement dans le dossier "control", c'est le nom du paquet (celui qui contient le fichier "package.xml") qui doit être utilisé dans la commande "ros2 run ...". Mon fichier setup.py qui fait le travail de "traducteur". C'est lui qui dit à ROS2 : "Quand l'utilisateur tape "ros
     entry_points={
         'console_scripts': [
+			'gopigo_driver_node = robot_gopigo.control.gopigo_driver_node:main',
             'camera_node = robot_gopigo.vision.camera_node:main',
             'cube_detector_node = robot_gopigo.vision.cube_detector_node:main',
-            'cmd_vel_node = robot_gopigo.control.cmd_vel_node:main',
             'mission_node = robot_gopigo.logic.mission_node:main',
-            'aruco_detector_node = robot_gopigo.vision.aruco_detector_node:main',
-            'odometry = robot_gopigo.control.odometry:main'
+            'debug_server = robot_gopigo.vision.debug_server:main',
+            'aruco_detector_node = robot_gopigo.vision.aruco_detector_node:main'
         ],
     },
 )
