@@ -1,14 +1,11 @@
 """
 camera_node.py
 ──────────────
-Capture d'images via OpenCV VideoCapture avec paramètres optimisés
-pour fixer le rendu verdâtre et améliorer les performances.
-
-Fixes :
-  - Format MJPG (plus rapide que YUYV par défaut)
-  - Balance des blancs manuelle (plus de dérive verdâtre)
-  - Buffer réduit à 1 (latence minimale)
-  - Ouverture via V4L2 explicite (plus fiable sur Pi/Ubuntu)
+Capture caméra avec :
+  - V4L2 + MJPG (perf)
+  - WB caméra manuelle
+  - Exposure réglable (auto ou manuelle)
+  - Gray World logicielle (anti-verdâtre)
 """
 
 import rclpy
@@ -16,6 +13,35 @@ from rclpy.node import Node
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
 import cv2
+import numpy as np
+
+
+def gray_world_correction(frame, strength=1.0):
+    """Balance des blancs Gray World (atténue dominante verte)."""
+    f = frame.astype(np.float32)
+    b, g, r = cv2.split(f)
+
+    avg_b = np.mean(b)
+    avg_g = np.mean(g)
+    avg_r = np.mean(r)
+    avg_gray = (avg_b + avg_g + avg_r) / 3.0
+
+    if avg_b > 0 and avg_g > 0 and avg_r > 0:
+        gb = avg_gray / avg_b
+        gg = avg_gray / avg_g
+        gr = avg_gray / avg_r
+    else:
+        gb = gg = gr = 1.0
+
+    gb = 1.0 + (gb - 1.0) * strength
+    gg = 1.0 + (gg - 1.0) * strength
+    gr = 1.0 + (gr - 1.0) * strength
+
+    b = np.clip(b * gb, 0, 255)
+    g = np.clip(g * gg, 0, 255)
+    r = np.clip(r * gr, 0, 255)
+
+    return cv2.merge([b, g, r]).astype(np.uint8)
 
 
 class CameraNode(Node):
@@ -29,17 +55,16 @@ class CameraNode(Node):
         self.declare_parameter('fps',    30)
         self.declare_parameter('device_index', 0)
 
-        # Balance des blancs manuelle
-        # 3000K = chaud / jaune (incandescent)
-        # 4500K = neutre intérieur (néons blancs)
-        # 6500K = froid / bleu (lumière du jour)
         self.declare_parameter('wb_temperature', 4500)
         self.declare_parameter('auto_wb',        False)
 
-        # Exposition (auto par défaut, fixe si besoin)
-        self.declare_parameter('auto_exposure',  True)
-        self.declare_parameter('exposure_value', 156)  # utilisé si auto_exposure=False
+        self.declare_parameter('auto_exposure',  False)
+        self.declare_parameter('exposure_value', 500)
 
+        self.declare_parameter('software_wb_enabled',  True)
+        self.declare_parameter('software_wb_strength', 0.7)
+
+        # ── Lecture ─────────────────────────────────────────────────────────
         self.width         = self.get_parameter('width').value
         self.height        = self.get_parameter('height').value
         self.fps           = self.get_parameter('fps').value
@@ -49,65 +74,58 @@ class CameraNode(Node):
         auto_exposure      = self.get_parameter('auto_exposure').value
         exposure_value     = self.get_parameter('exposure_value').value
 
-        # ── Publisher + Bridge ──────────────────────────────────────────────
+        self.sw_wb_enabled  = self.get_parameter('software_wb_enabled').value
+        self.sw_wb_strength = self.get_parameter('software_wb_strength').value
+
+        # ── Publisher ───────────────────────────────────────────────────────
         self.publisher = self.create_publisher(Image, '/camera/image_raw', 10)
         self.bridge = CvBridge()
 
-        # ── Ouverture caméra via V4L2 ───────────────────────────────────────
+        # ── Caméra ──────────────────────────────────────────────────────────
         self.cap = cv2.VideoCapture(device_index, cv2.CAP_V4L2)
-
         if not self.cap.isOpened():
             self.get_logger().error("Impossible d'ouvrir la caméra !")
             raise RuntimeError("Camera not available")
 
-        # Format de pixel : MJPG (beaucoup plus rapide que YUYV par défaut)
         self.cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG'))
-
-        # Résolution et FPS
         self.cap.set(cv2.CAP_PROP_FRAME_WIDTH,  self.width)
         self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.height)
         self.cap.set(cv2.CAP_PROP_FPS,          self.fps)
+        self.cap.set(cv2.CAP_PROP_BUFFERSIZE,   1)
 
-        # Buffer réduit (latence minimale)
-        self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
-
-        # Balance des blancs : désactiver l'auto qui part dans les verts
         if not auto_wb:
             self.cap.set(cv2.CAP_PROP_AUTO_WB, 0)
             self.cap.set(cv2.CAP_PROP_WB_TEMPERATURE, wb_temp)
         else:
             self.cap.set(cv2.CAP_PROP_AUTO_WB, 1)
 
-        # Exposition
         if not auto_exposure:
-            # Mode manuel (valeur V4L2 : 1 = manuel, 3 = auto)
             self.cap.set(cv2.CAP_PROP_AUTO_EXPOSURE, 1)
             self.cap.set(cv2.CAP_PROP_EXPOSURE, exposure_value)
 
-        # Vérification des paramètres effectifs
-        actual_w   = int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-        actual_h   = int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-        actual_fps = int(self.cap.get(cv2.CAP_PROP_FPS))
+        actual_w = int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        actual_h = int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        actual_exposure = self.cap.get(cv2.CAP_PROP_EXPOSURE)
 
         self.get_logger().info(
-            f"Caméra ouverte : {actual_w}x{actual_h} @ {actual_fps}fps | "
+            f"Caméra ouverte : {actual_w}x{actual_h} | "
             f"WB={'auto' if auto_wb else f'{wb_temp}K'} | "
-            f"Exposure={'auto' if auto_exposure else f'{exposure_value}'}"
+            f"Exposure: {actual_exposure} ({'auto' if auto_exposure else 'manuel'}) | "
+            f"WB-SW={'on (s=%.1f)' % self.sw_wb_strength if self.sw_wb_enabled else 'off'}"
         )
 
-        # ── Timer capture ───────────────────────────────────────────────────
         timer_period = 1.0 / self.fps
         self.timer = self.create_timer(timer_period, self.capture_frame)
-
-        # Compteur pour log périodique
         self.frame_count = 0
 
     def capture_frame(self):
         ret, frame = self.cap.read()
-
         if not ret:
             self.get_logger().warn('Frame non capturée')
             return
+
+        if self.sw_wb_enabled:
+            frame = gray_world_correction(frame, strength=self.sw_wb_strength)
 
         try:
             msg = self.bridge.cv2_to_imgmsg(frame, encoding='bgr8')
@@ -116,7 +134,6 @@ class CameraNode(Node):
             self.publisher.publish(msg)
 
             self.frame_count += 1
-            # Log toutes les 150 frames (≈ 5s à 30 fps)
             if self.frame_count % 150 == 0:
                 self.get_logger().info(f"Frames publiées : {self.frame_count}")
 

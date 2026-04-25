@@ -69,11 +69,27 @@ class ArucoDetectorNode(Node):
             self.get_logger().error(f"Dictionnaire inconnu : {dict_name}")
             raise ValueError(f"Unknown dict: {dict_name}")
 
-        # API OpenCV moderne (4.7+)
+        # Compatibilité API : OpenCV 4.7+ (nouvelle) vs 4.6 et antérieur (legacy)
         self.aruco_dict = cv2.aruco.getPredefinedDictionary(dict_map[dict_name])
-        self.detector_params = cv2.aruco.DetectorParameters()
-        self.detector = cv2.aruco.ArucoDetector(
-            self.aruco_dict, self.detector_params
+
+        if hasattr(cv2.aruco, 'ArucoDetector'):
+            # API moderne (OpenCV 4.7+)
+            self.detector_params = cv2.aruco.DetectorParameters()
+            self.detector = cv2.aruco.ArucoDetector(
+                self.aruco_dict, self.detector_params
+            )
+            self._use_modern_api = True
+        else:
+            # API legacy (OpenCV < 4.7)
+            if hasattr(cv2.aruco, 'DetectorParameters_create'):
+                self.detector_params = cv2.aruco.DetectorParameters_create()
+            else:
+                self.detector_params = cv2.aruco.DetectorParameters()
+            self.detector = None
+            self._use_modern_api = False
+
+        self.get_logger().info(
+            f"API ArUco : {'moderne (4.7+)' if self._use_modern_api else 'legacy (<4.7)'}"
         )
 
         # ── ROS interfaces ──────────────────────────────────────────────────
@@ -103,7 +119,13 @@ class ArucoDetectorNode(Node):
         height, width = frame.shape[:2]
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
-        corners, ids, _ = self.detector.detectMarkers(gray)
+        # Détection compatible double API
+        if self._use_modern_api:
+            corners, ids, _ = self.detector.detectMarkers(gray)
+        else:
+            corners, ids, _ = cv2.aruco.detectMarkers(
+                gray, self.aruco_dict, parameters=self.detector_params
+            )
 
         aruco_msg = ArucoDetect()
         aruco_msg.img_width = width
